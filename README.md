@@ -7,3 +7,4 @@
 # Example
 
 A turn-based tactical game where you manage limited power to survive
+<img width="1304" height="695" alt="image" src="https://github.com/user-attachments/assets/53846c94-46a1-49fe-b979-876cc669bc8f" />
