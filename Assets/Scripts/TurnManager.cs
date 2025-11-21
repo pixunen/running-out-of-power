@@ -43,16 +43,18 @@ public class TurnManager : MonoBehaviour
         if (PowerManager.Instance != null)
         {
             PowerManager.Instance.OnPowerDepleted -= EndPlayerTurn;
+            PowerManager.Instance.OnNoActionsAffordable -= EndPlayerTurn;
         }
     }
 
     void Start()
     {
         StartPlayerTurn();
-        
+
         if (PowerManager.Instance != null)
         {
             PowerManager.Instance.OnPowerDepleted += EndPlayerTurn;
+            PowerManager.Instance.OnNoActionsAffordable += EndPlayerTurn;
         }
     }
 

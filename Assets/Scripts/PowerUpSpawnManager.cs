@@ -8,14 +8,24 @@ public class PowerUpSpawnManager : MonoBehaviour
     [Header("Configuration")]
     [SerializeField] private PowerUpData powerUpData;
     [SerializeField] private GameObject powerUpPrefab;
-    
+
+    [Header("Health Orb Configuration")]
+    [SerializeField] private PowerUpData healthOrbData;
+    [SerializeField] private GameObject healthOrbPrefab;
+
     [Header("Spawn Settings")]
     [Range(0f, 1f)]
     [SerializeField] private float spawnChance = 0.3f; // 30% chance per turn
     [SerializeField] private int maxPowerUpsOnMap = 3;
+
+    [Header("Health Orb Spawn Settings")]
+    [Range(0f, 1f)]
+    [SerializeField] private float healthOrbSpawnChance = 0.15f; // 15% chance per turn (rarer)
+    [SerializeField] private int maxHealthOrbsOnMap = 2;
     
     [Header("Runtime Data")]
     private List<PowerUpController> activePowerUps = new List<PowerUpController>();
+    private List<PowerUpController> activeHealthOrbs = new List<PowerUpController>();
     private int currentTurn = 0;
     
     private void Awake()
@@ -60,12 +70,15 @@ public class PowerUpSpawnManager : MonoBehaviour
     private void OnPlayerTurnStart()
     {
         currentTurn++;
-        
+
         // Remove expired power-ups
         DespawnOldPowerUps();
-        
+
         // Try to spawn new power-up
         TrySpawnPowerUp();
+
+        // Try to spawn new health orb (separate chance)
+        TrySpawnHealthOrb();
     }
     
     /// <summary>
@@ -138,7 +151,78 @@ public class PowerUpSpawnManager : MonoBehaviour
             Destroy(powerUpObj);
         }
     }
-    
+
+    /// <summary>
+    /// Attempt to spawn a health orb based on spawn chance
+    /// </summary>
+    private void TrySpawnHealthOrb()
+    {
+        // Check if we've reached max health orbs on map
+        if (activeHealthOrbs.Count >= maxHealthOrbsOnMap)
+        {
+            return;
+        }
+
+        // Roll for spawn chance
+        float roll = Random.value;
+        if (roll > healthOrbSpawnChance)
+        {
+            return; // No spawn this turn
+        }
+
+        // Find a valid spawn position
+        Vector2Int spawnPosition = FindRandomSpawnPosition();
+        if (spawnPosition == Vector2Int.one * -1)
+        {
+            Debug.LogWarning("PowerUpSpawnManager: Could not find valid spawn position for health orb");
+            return;
+        }
+
+        // Spawn the health orb
+        SpawnHealthOrb(spawnPosition);
+    }
+
+    /// <summary>
+    /// Spawn a health orb at the specified grid position
+    /// </summary>
+    private void SpawnHealthOrb(Vector2Int gridPosition)
+    {
+        if (healthOrbPrefab == null || healthOrbData == null)
+        {
+            Debug.LogWarning("PowerUpSpawnManager: Health orb prefab or data not assigned!");
+            return;
+        }
+
+        // Get world position from grid
+        Vector3 worldPosition = GridManager.Instance.GetWorldPosition(gridPosition);
+
+        // Instantiate health orb
+        GameObject healthOrbObj = Instantiate(healthOrbPrefab, worldPosition, Quaternion.identity);
+        healthOrbObj.name = $"HealthOrb_{gridPosition.x}_{gridPosition.y}";
+
+        // Initialize controller
+        PowerUpController controller = healthOrbObj.GetComponent<PowerUpController>();
+        if (controller != null)
+        {
+            controller.Initialize(healthOrbData, gridPosition, currentTurn);
+            activeHealthOrbs.Add(controller);
+
+            // Register with grid cell
+            GridCell cell = GridManager.Instance.GetCell(gridPosition);
+            if (cell != null)
+            {
+                cell.SetPowerUp(healthOrbObj);
+            }
+
+            Debug.Log($"Health orb spawned at {gridPosition} with {controller.GetHealthAmount()} health");
+        }
+        else
+        {
+            Debug.LogError("PowerUpSpawnManager: PowerUpController not found on health orb prefab!");
+            Destroy(healthOrbObj);
+        }
+    }
+
     /// <summary>
     /// Find a random valid spawn position on the grid
     /// </summary>
@@ -203,17 +287,24 @@ public class PowerUpSpawnManager : MonoBehaviour
     public void RemovePowerUp(PowerUpController powerUp)
     {
         if (powerUp == null) return;
-        
+
         // Clear from grid cell
         GridCell cell = GridManager.Instance.GetCell(powerUp.GetGridPosition());
         if (cell != null)
         {
             cell.ClearPowerUp();
         }
-        
-        // Remove from active list
-        activePowerUps.Remove(powerUp);
-        
+
+        // Remove from appropriate list based on type
+        if (powerUp.IsHealthOrb())
+        {
+            activeHealthOrbs.Remove(powerUp);
+        }
+        else
+        {
+            activePowerUps.Remove(powerUp);
+        }
+
         // Destroy GameObject
         Destroy(powerUp.gameObject);
     }

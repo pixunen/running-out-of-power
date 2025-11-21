@@ -70,7 +70,7 @@ public class MoveAction : ActionBase
                 // Check for power-up collection
                 if (targetCell.HasPowerUp())
                 {
-                    CollectPowerUp(targetCell);
+                    CollectPowerUp(targetCell, actor);
                 }
             }
 
@@ -78,7 +78,7 @@ public class MoveAction : ActionBase
         }
     }
 
-    private void CollectPowerUp(GridCell cell)
+    private void CollectPowerUp(GridCell cell, GameObject actor)
     {
         if (cell.powerUpObject == null) return;
 
@@ -86,11 +86,31 @@ public class MoveAction : ActionBase
         PowerUpController powerUpController = cell.powerUpObject.GetComponent<PowerUpController>();
         if (powerUpController != null)
         {
-            // Collect the power amount
-            int powerAmount = powerUpController.Collect();
-            PowerManager.Instance.AddBonusPower(powerAmount);
+            // Check if it's a health orb or power-up
+            if (powerUpController.IsHealthOrb())
+            {
+                // Collect health orb
+                int healthAmount = powerUpController.GetHealthAmount();
 
-            Debug.Log($"Collected power-up! Gained {powerAmount} bonus power.");
+                // Heal the player
+                PlayerController player = actor.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    int oldHealth = player.currentHealth;
+                    player.currentHealth = Mathf.Min(player.currentHealth + healthAmount, player.maxHealth);
+                    int actualHealing = player.currentHealth - oldHealth;
+
+                    Debug.Log($"Collected health orb! Restored {actualHealing} health. Health: {player.currentHealth}/{player.maxHealth}");
+                }
+            }
+            else
+            {
+                // Collect power-up
+                int powerAmount = powerUpController.Collect();
+                PowerManager.Instance.AddBonusPower(powerAmount);
+
+                Debug.Log($"Collected power-up! Gained {powerAmount} bonus power.");
+            }
 
             // Remove from spawn manager's tracking
             if (PowerUpSpawnManager.Instance != null)

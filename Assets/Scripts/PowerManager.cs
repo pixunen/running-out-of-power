@@ -16,9 +16,14 @@ public class PowerManager : MonoBehaviour
     [Tooltip("Maximum bonus power that can be accumulated")]
     public int maxBonusPower = 5;
 
+    [Header("Action Costs")]
+    [Tooltip("Minimum power cost of any available action")]
+    public int minimumActionCost = 2;
+
     public event Action<int, int> OnPowerChanged; // current, max
     public event Action<int> OnBonusPowerChanged; // bonus power
     public event Action OnPowerDepleted;
+    public event Action OnNoActionsAffordable;
 
     void Awake()
     {
@@ -76,7 +81,13 @@ public class PowerManager : MonoBehaviour
 
             if (currentPower <= 0 && bonusPower <= 0)
             {
+                Debug.Log("Power depleted! Auto-ending turn...");
                 OnPowerDepleted?.Invoke();
+            }
+            else if (!CanAffordAnyAction())
+            {
+                Debug.Log($"Insufficient power for any action! (Total: {GetTotalPower()}, Min needed: {minimumActionCost}) Auto-ending turn...");
+                OnNoActionsAffordable?.Invoke();
             }
 
             return true;
@@ -138,5 +149,15 @@ public class PowerManager : MonoBehaviour
     public int GetTotalPower()
     {
         return currentPower + bonusPower;
+    }
+
+    public bool CanAffordAnyAction()
+    {
+        return GetTotalPower() >= minimumActionCost;
+    }
+
+    public void SetMinimumActionCost(int cost)
+    {
+        minimumActionCost = cost;
     }
 }

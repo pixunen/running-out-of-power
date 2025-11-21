@@ -72,7 +72,13 @@ public class PowerUpController : MonoBehaviour
     public bool ShouldDespawn(int currentTurn)
     {
         if (powerUpData == null) return false;
-        
+
+        // Health orbs don't despawn (or have very long lifetime)
+        if (!powerUpData.shouldDespawn)
+        {
+            return false;
+        }
+
         int age = currentTurn - spawnTurn;
         return age >= powerUpData.despawnTurns;
     }
@@ -84,9 +90,28 @@ public class PowerUpController : MonoBehaviour
     {
         return powerAmount;
     }
-    
+
+    /// <summary>
+    /// Get the health amount for health orbs
+    /// </summary>
+    public int GetHealthAmount()
+    {
+        if (powerUpData == null) return 0;
+        return powerUpData.healthAmount;
+    }
+
+    /// <summary>
+    /// Check if this is a health orb
+    /// </summary>
+    public bool IsHealthOrb()
+    {
+        if (powerUpData == null) return false;
+        return powerUpData.pickupType == PickupType.Health;
+    }
+
     // Getters
     public Vector2Int GetGridPosition() => gridPosition;
     public int GetPowerAmount() => powerAmount;
     public int GetSpawnTurn() => spawnTurn;
+    public PickupType GetPickupType() => powerUpData != null ? powerUpData.pickupType : PickupType.Power;
 }

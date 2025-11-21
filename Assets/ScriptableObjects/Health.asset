@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62c85819f9f6fab4fa4b3f1429cfceaa, type: 3}
+  m_Name: Health
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpData
+  pickupType: 1
+  minPowerAmount: 2
+  maxPowerAmount: 5
+  healthAmount: 1
+  shouldDespawn: 0
+  despawnTurns: 3
+  powerUpSprite: {fileID: 0}
+  powerUpColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
