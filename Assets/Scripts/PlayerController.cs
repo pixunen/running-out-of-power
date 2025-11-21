@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -20,6 +21,7 @@ public class PlayerController : MonoBehaviour
     [Header("State")]
     private bool isSelectingTarget = false;
     private Vector2Int hoveredCell;
+    private bool isAttacking = false;
 
     void Awake()
     {
@@ -89,7 +91,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (!TurnManager.Instance.IsPlayerTurn())
+        if (isAttacking || !TurnManager.Instance.IsPlayerTurn())
         {
             return;
         }
@@ -186,6 +188,53 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Action cancelled.");
     }
 
+    public void PerformAttack(Vector2Int targetPosition)
+    {
+        StartCoroutine(Attack(targetPosition));
+    }
+
+    private IEnumerator Attack(Vector2Int targetPosition)
+    {
+        if (attackAction.CanExecute(gameObject, targetPosition))
+        {
+            isAttacking = true;
+
+            Vector3 originalPosition = transform.position;
+            Vector3 targetWorldPosition = GridManager.Instance.GetWorldPosition(targetPosition);
+            // Move halfway to the target
+            Vector3 attackPosition = Vector3.Lerp(originalPosition, targetWorldPosition, 0.5f);
+
+            float animTime = 0.1f;
+
+            // Move towards target
+            float elapsedTime = 0f;
+            while (elapsedTime < animTime)
+            {
+                transform.position = Vector3.Lerp(originalPosition, attackPosition, elapsedTime / animTime);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            transform.position = attackPosition;
+
+            attackAction.Execute(gameObject, targetPosition);
+
+            // Wait a moment
+            yield return new WaitForSeconds(0.1f);
+
+            // Move back
+            elapsedTime = 0f;
+            while (elapsedTime < animTime)
+            {
+                transform.position = Vector3.Lerp(attackPosition, originalPosition, elapsedTime / animTime);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            transform.position = originalPosition;
+
+            isAttacking = false;
+        }
+    }
+
     void HandleMouseClick()
     {
         if (!isSelectingTarget || currentAction == null) return;
@@ -215,7 +264,14 @@ public class PlayerController : MonoBehaviour
 
             if (currentAction.CanExecute(gameObject, targetPos))
             {
-                currentAction.Execute(gameObject, targetPos);
+                if (currentAction is AttackAction)
+                {
+                    PerformAttack(targetPos);
+                }
+                else
+                {
+                    currentAction.Execute(gameObject, targetPos);
+                }
                 CancelAction();
             }
             else

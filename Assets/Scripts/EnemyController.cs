@@ -16,15 +16,12 @@ public class EnemyController : MonoBehaviour
     private bool isInitialized = false;
     public bool isAttacking = false;
 
-    private Animator animator;
-
     void Awake()
     {
         currentHealth = maxHealth;
         enemyAI = new EnemyAI(this);
         moveAction = new MoveAction();
         attackAction = new AttackAction();
-        animator = GetComponent<Animator>();
 
         // Add health bar component
         if (GetComponent<EnemyHealthBar>() == null)
@@ -174,14 +171,38 @@ public class EnemyController : MonoBehaviour
         {
             isAttacking = true;
 
-            if (animator != null)
+            Vector3 originalPosition = transform.position;
+            Vector3 targetWorldPosition = GridManager.Instance.GetWorldPosition(targetPosition);
+            // Move halfway to the target
+            Vector3 attackPosition = Vector3.Lerp(originalPosition, targetWorldPosition, 0.5f);
+
+            float animTime = 0.1f;
+
+            // Move towards target
+            float elapsedTime = 0f;
+            while (elapsedTime < animTime)
             {
-                animator.SetTrigger("Attack");
-                // Wait for animation to finish
-                yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
+                transform.position = Vector3.Lerp(originalPosition, attackPosition, elapsedTime / animTime);
+                elapsedTime += Time.deltaTime;
+                yield return null;
             }
+            transform.position = attackPosition;
 
             attackAction.Execute(gameObject, targetPosition);
+
+            // Wait a moment
+            yield return new WaitForSeconds(0.1f);
+
+            // Move back
+            elapsedTime = 0f;
+            while (elapsedTime < animTime)
+            {
+                transform.position = Vector3.Lerp(attackPosition, originalPosition, elapsedTime / animTime);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            transform.position = originalPosition;
+
             isAttacking = false;
         }
     }
